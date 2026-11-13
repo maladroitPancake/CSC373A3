@@ -1,5 +1,9 @@
 \documentclass[11pt]{exam}
 
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usetikzlibrary{calc}
+
 \usepackage{amsfonts, amsmath, amssymb, amsthm}
 \usepackage{mathtools}
 \usepackage{algpseudocode}
@@ -61,11 +65,110 @@
 
 \section{Question 2}
 
+To solve the problem we construct a flow network where the max flow value is $ n $ if and only if there is a valid assignment. Furthermore, if the max flow has only integer values, a subset of the edges with non-zero flow represents the professors chosen and the departments they are assigned to. We then find the max flow of this network with Ford-Fulkerson, and inspect the max flow to see if a valid assignment exits, and recover it if it does.
+
+\begin{figure}[h]
+	\centering
+\begin{tikzpicture}[
+    >={Stealth[length=2.5mm]},
+    vertex/.style={circle, draw, fill=white, inner sep=1.8pt},
+    every edge quotes/.style={font=\small, inner sep=2pt},
+    cap/.style={font=\small, fill=white, inner sep=1.5pt}
+]
+
+% Source and sink
+\node[vertex, label=left:{$s$}]  (s) at (0,0) {};
+\node[vertex, label=right:{$t$}] (t) at (14,0) {};
+
+% Level nodes
+\node[vertex, label=below:{$ \mathit{Ast} $}] (as) at (3.2, 1.8)  {};
+\node[vertex, label=below:{$ \mathit{Aso}$}] (ac) at (3.2, 0)    {};
+\node[vertex, label=below:{$ \mathit{Full}$}]      (fu) at (3.2,-1.8)  {};
+
+% Professor nodes
+\node[vertex, label=below:{$p_1$}]    (p1) at (7.0, 2.6)  {};
+\node[vertex, label=below:{$p_2$}]    (p2) at (7.0, 1.2)  {};
+\node[vertex, label=below:{$p_3$}]    (p3) at (7.0, -0.2)  {};
+\node[vertex, label=below:{$p_n$}]    (pn) at (7.0,-2.6)  {};
+\node at (7.0,-1.4) {$\vdots$};
+
+% Department nodes
+\node[vertex, label=below:{$d_1$}]    (d1) at (11.0, 2.2) {};
+\node[vertex, label=below:{$d_2$}]    (d2) at (11.0, 0.8) {};
+\node at (11.0,-0.7) {$\vdots$};
+\node[vertex, label=below:{$d_n$}]    (dn) at (11.0,-2.2) {};
+
+% Column headings
+\node[font=\large] at (3.2, 2.8) {$R$};
+\node[font=\large] at (7.0, 3.6) {$P$};
+\node[font=\large] at (11.0,3.2) {$D$};
+
+% Source -> levels
+\draw[->] (s) -- node[auto] {$c=k$} (as);
+\draw[->] (s) -- (ac);
+\draw[->] (s) -- (fu);
+
+% Levels -> professors (capacity 1)
+\draw[->] (as) -- node[auto, pos=0.6] {$c=1$} (p1);
+\draw[->] (as) -- (p3);
+\draw[->] (ac) -- (p2);
+\draw[->] (fu) -- (pn);
+\draw[->] (fu) -- ($(p3)+(0,-0.9)$);
+
+% Professors -> departments (capacity 1)
+\draw[->] (p1) -- node[auto, pos=0.32] {$c=1$} (d1);
+\draw[->] (p1) -- (d2);
+\draw[->] (p2) -- ($(dn)+(0,1.7)$);
+\draw[->] (p3) -- (d2);
+\draw[->] (p3) -- ($(dn)+(0,2.3)$);
+\draw[->] (pn) -- (dn);
+\draw[->] (pn) -- ($(dn)+(0,1.1)$);
+
+% Departments -> sink
+\draw[->] (d1) -- node[auto, pos=0.5] {$c=1$} (t);
+\draw[->] (d2) -- (t);
+\draw[->] (dn) -- (t);
+
+\end{tikzpicture}
+\caption{The flow network $ G $ our algorithm produces\protect\footnotemark.}
+\label{Q2-network}
+\end{figure}
+\footnotetext{First draft made by Claude from hand drawn diagram. Edited by the authors.}
+
+A diagram of the flow network we construct is shown in figure \ref{Q2-network}. The verticies of the network are $ \{s, t\} $, one vertex for each rank: $ R = \{ \mathit{Ast}, \mathit{Aso}, \mathit{Full}\} $, one vertex for each professor $ P = \{p_1, p_2, \ldots , p_m\} $ and one vertex for each department $ D = \{d_1, d_2, \ldots , d_n\} $. So, $ V = \{s, t\} \cup R \cup P \cup D $. Let $ k = n/3 $ be the number of professors of each rank we need on the committee.
+
+To ensure that there are at most $ k $ professors of each rank, for each $ r \in R $, we create an edge $ (s, r) $ with $ c(s, r) = k $. Then for each professor $ p $ of rank $ r $ we create the edge $ (r, p) $ with $ c(r, p) = 1 $. We say a professor is chosen for the comittee if 1 unit of flow is passing into their vertex, so this prevents more than $ k $ profesors being chosen for each rank.
+
+Next we ensure that no more than one professor is assigned to each department. For each department $ d $, we create an edge $ (d, t) $ with $ c(d, t) = 1 $. For each professor $ p $ we have $ D_p \subseteq D $ be the set of departments they are in and so are eligable to represent in the comittee. Then, for each $ d_p \in D_p $ we create the edge $ (p, d_p) $ with $ c(p, d_p) = 1 $. We say professor $ p $ is chosen to represent department $ d $ if there is a flow value of 1 on the edge $ (p, d) $. Because each professor has at most a flow of 1 in, they can represent at most one department in the comittee. Similarly, each department can be represented by at most 1 professor because the flow out can be at most $ 1 $.
+
+The maximum possible flow through this network is $ n $ because the total capacity of out $ s $ is $ 3 k=n $. For the network to acheive this flow, it requires that a professor is chosen for all $ n $ departments, so that the flow into $ t $ is $ n $. Thus, we can inspect the max flow value to see if an assignment is possible.
+
+To summarize, or algorithm does the following:
+
+\begin{enumerate}
+	\item Construct the flow network $ G $ based on the input professors and departments.
+	\item Run Ford-Fulkerson to find the max-flow $ f $.
+	\item Inspect the flow value $ v(f) $. If $ v(f) < n $ output no assignment exists. If $ v(f) = n $ examine each edge $ (p_i, d_j) $. If $ f(p_i, d_j) $ add that professor $ i $ represents department $ j $ to the assignment and output the assignment.
+\end{enumerate}
+
+\noindent \textbf{Correctness}\\
+we will add more text here later.
+
+
+\noindent \textbf{Runtime}\\
+We will analyise the runtime phase by phase with respect to $ m $, the number of professors, and $ n $, the number of departments. In phase one we construct the flow network $ G $ with vertex set $ V $ and edge set $ E $. Let $ N = |V| $ and $ M = |E| $. Notice that $ N = 5 + m + n $. Each professor could be affiliated with up to all $ n $ departments, so $ M \leq 3 + m + n + nm $. With proper encoding, we can construct the graph $ G $ in $O( N + M )$ time by simply iterating over the list of professors and departments to create each structure we need.
+
+Notice that $ G $ has only integer capacities with the maximum capacity $ k $. Thus finding the max flow (phase 2) can be done in $ O(kNM) $ time.
+
+Finally, we inspect the flow value, which takes constant time, then we iterate over the edges connecting professors to departments. There are $O( nm )$ such edges, so phase 3 takes $ O(nm) $ time. So, the runtime is dominated by phase 2, which takes $ O(kNM) $ time. Notice that $ k < n < n+m $, $ N \in O(n + m) $ and $ M \in O((n + m)^2) $ (as $ nm<(n+m)^2 $). Thus, phase 2 can be done in $ O((n+m)^4) $\footnote{This bound can likely be made tighter, but is sufficient to show polynomial} so this algorithm is clearly polynomial in $ n + m $.
+
+
 \section{Question 3}
 
 \subsection{Part A}
 
-\subsection{Part B}
+% Only A is graded
+%\subsection{Part B}
 
-\subsection{Part C}
+%\subsection{Part C}
 \end{document}
