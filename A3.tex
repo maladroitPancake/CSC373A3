@@ -1,5 +1,9 @@
 \documentclass[11pt]{exam}
 
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usetikzlibrary{calc}
+
 \usepackage{amsfonts, amsmath, amssymb, amsthm}
 \usepackage{mathtools}
 \usepackage{algpseudocode}
@@ -61,11 +65,199 @@
 
 \section{Question 2}
 
+To solve the problem we construct a flow network where the max flow value is $ n $ if and only if there is a valid assignment. Furthermore, if the max flow has only integer values, a subset of the edges with non-zero flow represents the professors chosen and the departments they are assigned to. We then find the max flow of this network with Ford-Fulkerson, and inspect the max flow to see if a valid assignment exits, and recover it if it does.
+
+\begin{figure}[h]
+	\centering
+\begin{tikzpicture}[
+    >={Stealth[length=2.5mm]},
+    vertex/.style={circle, draw, fill=white, inner sep=1.8pt},
+    every edge quotes/.style={font=\small, inner sep=2pt},
+    cap/.style={font=\small, fill=white, inner sep=1.5pt}
+]
+
+% Source and sink
+\node[vertex, label=left:{$s$}]  (s) at (0,0) {};
+\node[vertex, label=right:{$t$}] (t) at (14,0) {};
+
+% Level nodes
+\node[vertex, label=below:{$ \mathit{Ast} $}] (as) at (3.2, 1.8)  {};
+\node[vertex, label=below:{$ \mathit{Aso}$}] (ac) at (3.2, 0)    {};
+\node[vertex, label=below:{$ \mathit{Full}$}]      (fu) at (3.2,-1.8)  {};
+
+% Professor nodes
+\node[vertex, label=below:{$p_1$}]    (p1) at (7.0, 2.6)  {};
+\node[vertex, label=below:{$p_2$}]    (p2) at (7.0, 1.2)  {};
+\node[vertex, label=below:{$p_3$}]    (p3) at (7.0, -0.2)  {};
+\node[vertex, label=below:{$p_m$}]    (pn) at (7.0,-2.6)  {};
+\node at (7.0,-1.4) {$\vdots$};
+
+% Department nodes
+\node[vertex, label=below:{$d_1$}]    (d1) at (11.0, 2.2) {};
+\node[vertex, label=below:{$d_2$}]    (d2) at (11.0, 0.8) {};
+\node at (11.0,-0.7) {$\vdots$};
+\node[vertex, label=below:{$d_n$}]    (dn) at (11.0,-2.2) {};
+
+% Column headings
+\node[font=\large] at (3.2, 2.8) {$R$};
+\node[font=\large] at (7.0, 3.6) {$P$};
+\node[font=\large] at (11.0,3.2) {$D$};
+
+% Source -> levels
+\draw[->] (s) -- node[auto] {$c=k$} (as);
+\draw[->] (s) -- (ac);
+\draw[->] (s) -- (fu);
+
+% Levels -> professors (capacity 1)
+\draw[->] (as) -- node[auto, pos=0.6] {$c=1$} (p1);
+\draw[->] (as) -- (p3);
+\draw[->] (ac) -- (p2);
+\draw[->] (fu) -- (pn);
+\draw[->] (fu) -- ($(p3)+(0,-0.9)$);
+
+% Professors -> departments (capacity 1)
+\draw[->] (p1) -- node[auto, pos=0.32] {$c=1$} (d1);
+\draw[->] (p1) -- (d2);
+\draw[->] (p2) -- ($(dn)+(0,1.7)$);
+\draw[->] (p3) -- (d2);
+\draw[->] (p3) -- ($(dn)+(0,2.3)$);
+\draw[->] (pn) -- (dn);
+\draw[->] (pn) -- ($(dn)+(0,1.1)$);
+
+% Departments -> sink
+\draw[->] (d1) -- node[auto, pos=0.5] {$c=1$} (t);
+\draw[->] (d2) -- (t);
+\draw[->] (dn) -- (t);
+
+\end{tikzpicture}
+\caption{The flow network $ G $ our algorithm produces\protect\footnotemark.}
+\label{Q2-network}
+\end{figure}
+\footnotetext{For each figure, the first draft was made by AI (Claude Sonnet 5.5) from hand drawn diagram, then edits were made by the authors.}
+
+A diagram of the flow network we construct is shown in figure \ref{Q2-network}. The vertices of the network are $ \{s, t\} $, one vertex for each rank: $ R = \{ \mathit{Ast}, \mathit{Aso}, \mathit{Full}\} $, one vertex for each professor $ P = \{p_1, p_2, \ldots , p_m\} $ and one vertex for each department $ D = \{d_1, d_2, \ldots , d_n\} $. So, $ V = \{s, t\} \cup R \cup P \cup D $. Let $ k = n/3 $ be the number of professors of each rank we need on the committee.
+
+To ensure that there are at most $ k $ professors of each rank, for each $ r \in R $, we create an edge $ (s, r) $ with $ c(s, r) = k $. Then for each professor $ p $ of rank $ r $ we create the edge $ (r, p) $ with $ c(r, p) = 1 $. We say a professor is chosen for the committee if 1 unit of flow is passing into their vertex, so this prevents more than $ k $ professors being chosen for each rank.
+
+Next we ensure that no more than one professor is assigned to each department. For each department $ d $, we create an edge $ (d, t) $ with $ c(d, t) = 1 $. For each professor $ p $ we have $ D_p \subseteq D $ be the set of departments they are in and so are eligible to represent in the committee. Then, for each $ d_p \in D_p $ we create the edge $ (p, d_p) $ with $ c(p, d_p) = 1 $. We say professor $ p $ is chosen to represent department $ d $ if there is a flow value of 1 on the edge $ (p, d) $. Because each professor has at most a flow of 1 in, they can represent at most one department in the committee. Similarly, each department can be represented by at most 1 professor because the flow out can be at most $ 1 $.
+
+The maximum possible flow through this network is $ n $ because the total capacity of out $ s $ is $ 3 k=n $. For the network to achieve this flow, it requires that a professor is chosen for all $ n $ departments, so that the flow into $ t $ is $ n $. Thus, we can inspect the max flow value to see if an assignment is possible.
+
+To summarize, or algorithm does the following:
+
+\begin{enumerate}
+	\item Construct the flow network $ G $ based on the input professors and departments.
+	\item Run Ford-Fulkerson to find the max-flow $ f $.
+	\item Inspect the flow value $ v(f) $. If $ v(f) < n $ output no assignment exists. If $ v(f) = n $ create the assignment by examining each edge $ (p_i, d_j) $. If $ f(p_i, d_j) = 1 $ add that professor $ i $ represents department $ j $ to the assignment.
+\end{enumerate}
+
+\noindent \textbf{Correctness}\\
+% define Saturated flow (integral full capacity flow flow)
+Let $ f $ be a \textit{saturated flow} over $ G $ if $ f $ is an integral flow, and $ \mathit{val}(f) = n $. Let $ A_f $ be the \textit{associated assignment} given by assigning professor $ p_i $ to the committee representing department $ d_j $ if and only if $ f(p_i, d_j) = 1$.
+
+% define valid assignment?
+% clearly ford-fulk finds saturated flow if it exists, and alg outputs the associated matching
+Our network $ G $ only has integer capacities, so the flow outputed by Ford-Fulkerson will be an integral flow. Our algorithm only accepts if the max flow has value $ n $, so our algorithm only outputs a matching if $ G $ has a saturated flow over $ f $. For some saturated flow $ f $ on $ G $ let $ A_f $ be the assignment given by out algorithm, that is assigning professor $ p_i $ to represent department $ d_j $ if and only if $ f(p_i, d_j) = 1 $. So, it is sufficient to show that $ G $ has a saturated flow if and only if the associated assignment $ A_f $ is a valid assignment to show that our algorithm is correct.
+% show saturated flow iff valid assignment
+
+% (=>) show saturated flow creates valid assignment
+First we show that each saturated flow corresponds to a valid assignment. Let $ f $ be a saturated flow over $ G $ with associated assignment $ A_f $. We will show that each selected professor only represents one department, each department is represented, and the number of professors of each rank on the committee are equal (there are $ k = n/3$ of each rank).
+
+Each professor only has one inbound edge, with capacity 1. Because $ f $ is an integral flow, each professor $ p_i $ can have either 0 or 1 flowing through it, so they can have at most one edge $ (p_i, d_j) $ with $ f(p_i, d_j) = 1 $. Thus, each professor can represent at most one department.
+
+Because $ \mathit{val}(f) = n $, we must have that $ f^{ \mathit{in}}( t )= n $. There are $ n $ edges going into $ t $ each with capacity 1 (one from each department), so each edge into $ t $ must have a flow value of 1. So, by flow conservation, each department must have a flow value of 1 going into it, so each department is represented by a professor.
+
+Similarly, as $ \mathit{val}(f) = n $, we have $ f^{ \mathit{out}} (s) = n$. There are $ 3 $ edges going out of $ s $ each with capacity $ k = n/3 $, so each edge out of $ s $ must have a flow value $ k $. So, by flow conservation, each rank of professor must have flow value $ k $ going out of it, which means that $ k $ professors have been selected of every rank. Thus the conditions are satisfied and $ A_f $ is a valid assignment
+
+% (<=) Show if a valid assignment exists, we can have a saturated flow. Check capacity, conservation, saturation.
+Next we will show that for some valid assignment $ A $ we can create an associated flow $ f_A $ such that $ f_A $ is a saturated flow. We do this by inverting the transformation we use to get associated assignments. We construct $ f_A $ as follows: first, set $ f(s, r) = k $ for each $ r \in R $. Also, set $ f(d_j, t) = 1 $ for each $ d_j \in D $. Then, for each assignment $ (p_i, d_j) $ in $ f_A $ where $ p_i $ is of rank $ r_{p_i} $, set $ f(p_i, d_j) = 1 $ and $ f(r_{p_i}, p_i) = 1 $. Give each other edge flow value 0. We will prove $ f_A $ is a saturated flow, i.e. it satisfies capacity and flow constraints, is integral and $ \mathit{val}(f_A) = n $.
+
+$ f_A $ clearly is both integral and satisfies capacity constraints. The flow value on each edge is either set to the edge's integer capacity, or is 0. $ \mathit{val}(f_A) = f^{ \mathit{out}} (s) = 3k = n$ as the three edges out of $ s $ are at max capacity.
+
+It remains to check the flow constraints. $ s $ and $ t $ are unburdened by flow constraints. For each professor assigned to the committee, they have a flow in of 1 from their rank, and a flow out of 1 to the department they are representing, so flow constraints hold. Each professor that is not selected has no flow in or out. For each vertex in $ R $, the flow in is $ k $. Because $ A $ is a valid assignment, there are exactly $ k $ professors of each rank so the flow out from each vertex in $ R $ is $ k $. Each department has flow in of 1 from the professor that is representing them and a flow out of 1, so the capacity constraints are satisfied for all vertices. \hfill \qed
+
+\vspace{\baselineskip}
+
+\noindent \textbf{Runtime}\\
+We will analyse the runtime phase by phase with respect to $ m $, the number of professors, and $ n $, the number of departments. In phase one we construct the flow network $ G $ with vertex set $ V $ and edge set $ E $. Let $ N = |V| $ and $ M = |E| $. Notice that $ N = 5 + m + n $. Each professor could be affiliated with up to all $ n $ departments, so $ M \leq 3 + m + n + nm $. With proper encoding, we can construct the graph $ G $ in $O( N + M )$ time by simply iterating over the list of professors and departments to create each structure we need.
+
+Notice that $ G $ has only integer capacities with the maximum capacity $ k $. Thus finding the max flow (phase 2) can be done in $ O(kNM) $ time.
+
+Finally, we inspect the flow value, which takes constant time, then we iterate over the edges connecting professors to departments. There are $O( nm )$ such edges, so phase 3 takes $ O(nm) $ time. So, the runtime is dominated by phase 2, which takes $ O(kNM) $ time. Notice that $ k < n < n+m $, $ N \in O(n + m) $ and $ M \in O((n + m)^2) $ (as $ nm<(n+m)^2 $). Thus, phase 2 can be done in $ O((n+m)^4) $ so this algorithm is clearly polynomial\footnote{This bound can likely be made tighter, but is sufficient to show polynomial time.} in $ n + m $.
+
+
 \section{Question 3}
 
 \subsection{Part A}
 
-\subsection{Part B}
+\begin{figure}[h]
+	\centering
+\begin{tikzpicture}[
+    >={Stealth[length=2.5mm]},
+    vertex/.style={circle, draw, fill=white, inner sep=1.8pt}
+]
 
-\subsection{Part C}
+% Source and sink
+\node[vertex, label=below:{$s$}] (s) at (0,0) {};
+\node[vertex, label=below:{$t$}] (t) at (14,0) {};
+
+% Left column (W)
+\node[vertex, label=above:{$w_1$}] (w1) at (4.5, 3.2)  {};
+\node[vertex, label=above:{$w_2$}] (w2) at (4.5, 1.8)  {};
+\node at (4.5, 0.6) {$\vdots$};
+\node[vertex, label=below:{$w_r$}] (wr) at (4.5,-0.6)  {};
+\node at (4.5,-1.8) {$\vdots$};
+\node[vertex, label=below:{$w_m$}] (wm) at (4.5,-3.2)  {};
+
+% Right column (N)
+\node[vertex, label=above:{$n_1$}] (c1) at (9.5, 3.2)  {};
+\node[vertex, label=above:{$n_2$}] (c2) at (9.5, 1.8)  {};
+\node at (9.5, 0.3) {$\vdots$};
+\node[vertex, label=below:{$n_i$}] (ci) at (9.5,-0.6)  {};
+\node at (9.5,-1.9) {$\vdots$};
+\node[vertex, label=below:{$n_n$}] (cn) at (9.5,-3.2)  {};
+
+% Column headings
+\node[font=\large] at (4.5, 4.4) {$W$};
+\node[font=\large] at (9.5, 4.4) {$N$};
+
+% Source -> W
+\draw[->] (s) -- node[auto, pos=0.75] {$s_1$} (w1);
+\draw[->] (s) -- node[auto, pos=0.75] {$s_2$} (w2);
+\draw[->] (s) -- node[auto, pos=0.60] {$s_r$} (wr);
+\draw[->] (s) -- node[auto, pos=0.59] {$s_m$} (wm);
+
+% W -> C
+\draw[->] (w1) -- node[auto, pos=0.5] {$s_1$} (c1);
+\draw[->] (w1) -- node[auto, pos=0.43] {$s_1$} (9.5, 1.0);
+\draw[->] (w2) -- node[auto, swap, pos=0.15] {$s_2$} (cn);
+\draw[->] (wr) -- node[auto, pos=0.55] {$s_r$} (c2);
+\draw[->] (wr) -- node[auto, pos=0.7] {$s_r$} (ci);
+\draw[->] (wm) -- node[auto, pos=0.55] {$s_m$} (9.5,-1.5);
+\draw[->] (wm) -- node[auto, pos=0.5] {$s_m$} (cn);
+
+% C -> sink
+\draw[->] (c1) -- node[auto, pos=0.37] {$c_1$} (t);
+\draw[->] (c2) -- node[auto, pos=0.37] {$c_2$} (t);
+\draw[->] (ci) -- node[auto, pos=0.5] {$c_i$} (t);
+\draw[->] (cn) -- node[auto, pos=0.5] {$c_n$} (t);
+
+\end{tikzpicture}
+\caption{The flow network $ G $ our algorithm produces.}
+\label{Q3-network}
+\end{figure}
+
+We construct a flow network where a unit of flow from a warehouse to a nation represents one dose being supplied to that nation from that warehouse. The flow network $ G $ with vertex set $ V $ and edge set $ E $ we construct is depicted in figure \ref{Q3-network}. The vertices of the network are $ \{s, t\} $, one vertex for each warehouse: $ W  = \{w_1, w_2, \ldots w_m \}$, and one vertex to reach nation $ N = \{n_1, n_2, \ldots n_n\} $. So, $ V = \{s, t\} \cup W \cup N $. For each warehouse $ w_r $ with supply $ s_r $ we create an edge $ (s, w_r) $ with $ c(s, w_r) = s_r $. For each nation $ n_i $ with demand $ c_i $, we create an edge $ (n_i, t) $ with capacity $ c(n_i, t) = c_i $. Lastly, for each pair $(i, r)$ of nations an warehouses, we create a edge $ (w_r, n_i) $ connecting them. We don't care about the capacity of this edge, so we just set it to $ c(w_r, n_i) = s_r $ so that it doesn't bind.
+
+Once we have a integral max flow in $ G $, we can derive an allocation of vaccines to nations. For each edge $ (w_r, n_i) $ from a warehouse to a nation, we have warehouse $ r $ ship a number of doses equal to the flow value $ f(w_r, n_i) $ to nation $ i $.
+
+We show that this allocation is a maximum allocation. First, we show that any integral flow corresponds to a valid allocation where the flow value is the total number of vaccines allocated and vice versa. Then, this is sufficient to show that the maximum flow will be the maximum allocation.
+
+Let $ f $ be some flow over $ G $. Consider the associated allocation where each warehouse $ w_r $ supplies $ f(w_r, n_i) $ to each nation $ n_i $. Because we only have edges $ (w_r, n_i) $ if warehouse $ r $ can supply to nation $ i $, each of these supply chains are viable. By flow conservation, the total amount supplied by warehouse $ r $ is the flow into it. By flow conservation, this is at most $ s_r $, the capacity of the edge into $ w_r $, so the supply constraints are satisfied. Similarly, the flow out of nation $ i $ is at most $ c_i $, so the demand constraints are satisfied. Thus, the flow $ f $ corresponds to a valid allocation.
+
+Next we consider the opposite direction. Consider some allocation $ A $ of vaccines from warehouses to nations. We can construct a valid flow $ f $ over $ G $ by setting the flow value for each edge $ (w_r, n_i) $ to be the number of doses delivered to nation $ i $ from warehouse $ r $. Then, for each edge $ (s, w_r) $ we set the flow value to be the total number of doses supplied by warehouse $ r $. For each edge $ (n_i, t) $ we set the flow value to be the total amount of vaccines received by nation $ i $. This causes the flow conservation constraints to be satisfied. Because $ A $ is a valid allocation, warehouse $ r $ supplies at most $ s_r $ doses, so $ f(s, w_r) \leq c(s, w_r) = s_r $. Similarly, nation $ i $ receives at most $ c_i $ doses, so $ f(n_i, t) \leq c(n_i, t) = c_i $. Finally, each warehouse cannot supply more than its total supply to any one nation, so for each edge $ (w_r, n_i) $, we have $ f(w_r, n_i) \leq s_i = c(w_r, n_i) $, so the capacity constraints are satisfied for all edges. Thus the allocation $ A $ corresponds to a valid flow. \hfill \qed
+% Only A is graded
+%\subsection{Part B}
+
+%\subsection{Part C}
 \end{document}
