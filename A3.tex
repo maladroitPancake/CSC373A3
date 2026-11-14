@@ -161,23 +161,88 @@ Therefore, the runtime of \textsc{SomeFlow} is $ O(m^2 + mn + m + m)
 
 \subsection{Part B}
 
-First, construct a new network $G' = (V, E)$. For every edge $e
-\in E$, the capacity is defined as $c(e) = f_0 (e) - \ell (e)$.
-Then, perform Ford-Fulkerson on the network $G'$ to find the maximum
-"flow" $f'$ on the network.
-Finally, construct the flow $f$ that has minimum value among all
-flows, satisfies lower bound, and satisfies flow conservation by
-calculating $f(e) = f_0 (e) - f'(e)$.
+First, construct a new ``residual'' network $G'$. For every edge
+$(u,v) \in E$, the forward edge $(u,v)$ will have capacity
+$\mathit{val}(f_0)$ and the backwards edge $(v,u)$ will have capacity
+$f_0(u,v)-\ell(u,v)$. Then, perform Ford-Fulkerson on the network
+$G'$ to find the maximum flow $f'$ from $t$ to $s$.
+
+Finally, construct the flow $f$ by calculating
+\[
+  f(u,v) = f_0(u,v) + f'(u,v)
+  - f'(v,u).
+\]
 
 \noindent \textbf{Correctness}\\
 
+We want to show that the resulting flow $f$ is a valid flow
+that satisfies the lower bound and flow conservation. Then, we will
+show that $f$ indeed is a minimum valid flow.
+
+We know from construction, that $f'(u, v) \geq 0$ and $f'(v, u) \leq
+f_0 (u, v) - \ell (u, v) \Leftrightarrow f_0 (u, v) \geq \ell(u, v) +
+f'(v, u)$. So, $f_0 (u, v) + f'(u, v) - f'(v, u) \geq \ell(u, v) +
+f'(v, u) + 0 - f'(v, u) = \ell(u, v)$.
+Thus $f (u, v) \geq \ell(u, v)$ meaning lower bounds are satsified.
+
+Also, for each vertex $x \in V \setminus \{s, t\}$, we know
+${f'}^\mathit{in} (x) = {f'}^\mathit{out} (x)$ by correctness of
+Ford-Fulkerson. From part A, we also know that $f_0^\mathit{in} (x) =
+f_0^\mathit{out} (x)$.
+Since a forward edge in $G'$ increases the flow in $G$ and a backward
+edge decreases the flow in $G$, we have
+\[
+  f^\mathit{out}(x)-f^\mathit{in}(x) =
+  (f_0^\mathit{out}(x)-f_0^\mathit{in}(x)) +
+  ({f'}^\mathit{out}(x)-{f'}^\mathit{in}(x)).
+\]
+Since both terms are zero by flow conservation of $f_0$ and $f'$,
+flow conservation also holds for $f$. Note that this also tells us
+that $\mathit{val}(f) = \mathit{val}(f_0) - \mathit{val}(f')$.
+
+For minimality of $f$, suppose for contradiction, that there exists
+another valid flow $g$ in $G$ such that $\mathit{val}(g) < \mathit{val}(f)$.
+Now, construct another flow $h$ in $G'$ based on the difference
+between $f_0$ and $g$. For every edge $(u,v) \in E$, if $g(u,v) <
+f_0(u,v)$, assign $f_0(u,v)-g(u,v)$ to the backward edge $(v,u)$.
+Otherwise, assign $g(u,v)-f_0(u,v)$ to the forward edge $(u,v)$.
+
+For the backward edges, we know that $g(u,v) \geq \ell(u,v)$, so
+$f_0(u,v)-g(u,v) \leq f_0(u,v)-\ell(u,v)$. Hence, the backward
+capacity constraints are satisfied. Furthermore, since both $f_0$ and
+$g$ satisfy flow conservation, their differences also satisfy flow
+conservation. Thus, $h$ satisfies flow conservation and has value
+\[
+  \mathit{val}(h) = \mathit{val}(f_0)-\mathit{val}(g).
+\]
+
+Note that if the construction of $h$ leads to a cycle, we can remove cycles from
+$h$ without changing its value. After removing such cycles, every edge
+carries at most $\mathit{val}(h)$ flow. Since $\mathit{val}(g) \geq 0$, we have
+\[
+  \mathit{val}(h) \leq \mathit{val}(f_0).
+\]
+Therefore, the forward capacity constraints are also satisfied,
+giving a valid flow $h$ in $G'$.
+
+Now, notice $\mathit{val}(f_0) - \mathit{val}(g) > \mathit{val}(f_0) -
+\mathit{val}(f)$. Since we know from above that $\mathit{val}(f_0) -
+\mathit{val}(f) = \mathit{val}(f')$, this means that
+$\mathit{val}(f_0) - \mathit{val}(g) > \mathit{val}(f')$.
+
+This is a contradiction, since $f'$ is a maximum flow in $G'$ by
+correctness of Ford-Fulkerson, but we have constructed another valid
+flow $h$ in $G'$ such that $\mathit{val}(h) > \mathit{val}(f')$.
+
+Therefore, $f$ must be a minimum flow, as desired.
+
 \noindent \textbf{Runtime}\\
 
-Construction of the new network $G'$ takes $O(m)$, to calculate the
-new capacities for each edge. Then, Ford-Fulkerson with fewest edge
-(shortest path) heuristic takes $O(m^2 n)$. Finally, the construction
-of $f$ takes $O(m)$, as calculating the minimum flow for each edge
-takes $O(1)$ time.
+Construction of the new network $G'$ requires calculation of
+capacities of forward and backward edges, which takes $O(m)$ time.
+Then, Ford-Fulkerson with fewest edge (shortest path) heuristic takes
+$O(m^2 n)$. Finally, the construction of $f$ takes $O(m)$, as
+calculating the minimum flow for each edge takes $O(1)$ time.
 
 Therefore, the runtime of the above algorithm is $ O(m^2 n) $, which
 is polynomial in $m$ and $n$.
