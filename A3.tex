@@ -89,7 +89,7 @@ To solve the problem we construct a flow network where the max flow value is $ n
 \node[vertex, label=below:{$p_1$}]    (p1) at (7.0, 2.6)  {};
 \node[vertex, label=below:{$p_2$}]    (p2) at (7.0, 1.2)  {};
 \node[vertex, label=below:{$p_3$}]    (p3) at (7.0, -0.2)  {};
-\node[vertex, label=below:{$p_n$}]    (pn) at (7.0,-2.6)  {};
+\node[vertex, label=below:{$p_m$}]    (pn) at (7.0,-2.6)  {};
 \node at (7.0,-1.4) {$\vdots$};
 
 % Department nodes
@@ -148,19 +148,42 @@ To summarize, or algorithm does the following:
 \begin{enumerate}
 	\item Construct the flow network $ G $ based on the input professors and departments.
 	\item Run Ford-Fulkerson to find the max-flow $ f $.
-	\item Inspect the flow value $ v(f) $. If $ v(f) < n $ output no assignment exists. If $ v(f) = n $ examine each edge $ (p_i, d_j) $. If $ f(p_i, d_j) $ add that professor $ i $ represents department $ j $ to the assignment and output the assignment.
+	\item Inspect the flow value $ v(f) $. If $ v(f) < n $ output no assignment exists. If $ v(f) = n $ create the assignment by examining each edge $ (p_i, d_j) $. If $ f(p_i, d_j) = 1 $ add that professor $ i $ represents department $ j $ to the assignment.
 \end{enumerate}
 
 \noindent \textbf{Correctness}\\
-we will add more text here later.
+% define Saturated flow (integral full capacity flow flow)
+Let $ f $ be a \textit{saturated flow} over $ G $ if $ f $ is an integral flow, and $ \mathit{val}(f) = n $. Let $ A_f $ be the \textit{associated assignment} givin by assigning professor $ p_i $ to the committee representing department $ d_j $ if and only if $ f(p_i, d_j) = 1$.
 
+% define valid assignment?
+% clearly ford-fulk finds saturated flow if it exists, and alg outputs the associated matching
+Our network $ G $ only has integer capacities, so the flow outputed by Ford-Fulkerson will be an integral flow. Our algorithm only accepts if the max flow has value $ n $, so our algorithm only outputs a matching if $ G $ has a saturated flow over $ f $. For some saturated flow $ f $ on $ G $ let $ A_f $ be the assignment given by out algorithm, that is assigning professor $ p_i $ to reperesent department $ d_j $ if and only if $ f(p_i, d_j) = 1 $. So, it is sufficient to show that $ G $ has a saturated flow if and only if the assosiated assignment $ A_f $ is a valid assignment to show that our algorithm is correct.
+% show saturated flow iff valid assignment
+
+% (=>) show saturated flow creates valid assignment
+First we show that each saturated flow corresponds to a valid assignment. Let $ f $ be a saturated flow over $ G $ with associated assignment $ A_f $. We will show that each selected professor only represents one department, each department is represented, and the number of professors of each rank on the committee are equal (there are $ k = n/3$ of each rank).
+
+Each professor only has one inbound edge, with capacity 1. Because $ f $ is an integral flow, each professor $ p_i $ can have either 0 or 1 flowing through it, so they can have at most one edge $ (p_i, d_j) $ with $ f(p_i, d_j) = 1 $. Thus, each professor can represent at most one department. 
+
+Becasue $ \mathit{val}f = n $, we must have that $ f^{ \mathit{in}} t = n $. There are $ n $ edges going into $ t $ each with capacity 1 (one from each department), so each edge into $ t $ must have a flow value of 1. So, by flow conservation, each department must have a flow value of 1 going into it, so each department is represented by a professor.
+
+Similarly, as $ \mathit{val}f = n $, we have $ f^{ \mathit{out}} s = n$. There are $ 3 $ edges going out of $ s $ each with capacity $ k = n/3 $, so each edge out of $ s $ must have a flow value $ k $. So, by flow conseravtion, each rank of professor must have flow value $ k $ going out of it, which means that $ k $ professors have been selected of every rank. Thus the conditions are satisfied and $ A_f $ is a valid assignment
+
+% (<=) Show if a valid assignment exists, we can have a saturated flow. Check capacity, conservation, saturation.
+Next we will show that for some valid assignment $ A $ we can create an associated flow $ f_A $ such that $ f_A $ is a saturated flow. We do this by inverting the tranformation we use to get associated assignments. We construct $ f_A $ as follows: first, set $ f(s, r) = k $ for each $ r \in R $. Also, set $ f(d_j, t) = 1 $ for each $ d_j \in D $. Then, for each assignment $ (p_i, d_j) $ in $ f_A $ where $ p_i $ is of rank $ r_{p_i} $, set $ f(p_i, d_j) = 1 $ and $ f(r_{p_i}, p_i) = 1 $. Give each other edge flow value 0. We will prove $ f_A $ is a saturated flow, i.e. it statisfies capacity and flow constraints, is integral and $ \mathit{val}(f_A) = n $.
+
+$ f_A $ clearly is both integral and satisfies capacity constraints. The flow value on each edge is either set to the edge's integer capacity, or is 0. $ \mathit{val}(f_A) = f^{ \mathit{out}} (s) = 3k = n$ as the three edges out of $ s $ are at max capacity.
+
+It remains to check the flow constraints. $ s $ and $ t $ are unburdened by flow constraints. For each professor assigned to the committee, they have a flow in of 1 from their rank, and a flow out of 1 to the department they are reperesenting, so flow constraints hold. Each professor that is not selected has no flow in or out. For each vertex in $ R $, the flow in is $ k $. Because $ A $ is a valid assignment, there are exactly $ k $ professors of each rank so the flow out from each vertex in $ R $ is $ k $. Each department has flow in of 1 from the proffessor that is representing them and a flow out of 1, so the capacity constraints are satisfied for all verticies. \hfill \qed
+
+\vspace{\baselineskip}
 
 \noindent \textbf{Runtime}\\
 We will analyise the runtime phase by phase with respect to $ m $, the number of professors, and $ n $, the number of departments. In phase one we construct the flow network $ G $ with vertex set $ V $ and edge set $ E $. Let $ N = |V| $ and $ M = |E| $. Notice that $ N = 5 + m + n $. Each professor could be affiliated with up to all $ n $ departments, so $ M \leq 3 + m + n + nm $. With proper encoding, we can construct the graph $ G $ in $O( N + M )$ time by simply iterating over the list of professors and departments to create each structure we need.
 
 Notice that $ G $ has only integer capacities with the maximum capacity $ k $. Thus finding the max flow (phase 2) can be done in $ O(kNM) $ time.
 
-Finally, we inspect the flow value, which takes constant time, then we iterate over the edges connecting professors to departments. There are $O( nm )$ such edges, so phase 3 takes $ O(nm) $ time. So, the runtime is dominated by phase 2, which takes $ O(kNM) $ time. Notice that $ k < n < n+m $, $ N \in O(n + m) $ and $ M \in O((n + m)^2) $ (as $ nm<(n+m)^2 $). Thus, phase 2 can be done in $ O((n+m)^4) $\footnote{This bound can likely be made tighter, but is sufficient to show polynomial} so this algorithm is clearly polynomial in $ n + m $.
+Finally, we inspect the flow value, which takes constant time, then we iterate over the edges connecting professors to departments. There are $O( nm )$ such edges, so phase 3 takes $ O(nm) $ time. So, the runtime is dominated by phase 2, which takes $ O(kNM) $ time. Notice that $ k < n < n+m $, $ N \in O(n + m) $ and $ M \in O((n + m)^2) $ (as $ nm<(n+m)^2 $). Thus, phase 2 can be done in $ O((n+m)^4) $ so this algorithm is clearly polynomial\footnote{This bound can likely be made tighter, but is sufficient to show polynomial time.} in $ n + m $.
 
 
 \section{Question 3}
