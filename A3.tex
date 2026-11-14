@@ -133,7 +133,7 @@ To solve the problem we construct a flow network where the max flow value is $ n
 \caption{The flow network $ G $ our algorithm produces\protect\footnotemark.}
 \label{Q2-network}
 \end{figure}
-\footnotetext{First draft made by Claude from hand drawn diagram. Edited by the authors.}
+\footnotetext{For each figure, the first draft was made by AI (Claude Sonnet 5.5) from hand drawn diagram, then edits were made by the authors.}
 
 A diagram of the flow network we construct is shown in figure \ref{Q2-network}. The verticies of the network are $ \{s, t\} $, one vertex for each rank: $ R = \{ \mathit{Ast}, \mathit{Aso}, \mathit{Full}\} $, one vertex for each professor $ P = \{p_1, p_2, \ldots , p_m\} $ and one vertex for each department $ D = \{d_1, d_2, \ldots , d_n\} $. So, $ V = \{s, t\} \cup R \cup P \cup D $. Let $ k = n/3 $ be the number of professors of each rank we need on the committee.
 
@@ -163,11 +163,11 @@ Our network $ G $ only has integer capacities, so the flow outputed by Ford-Fulk
 % (=>) show saturated flow creates valid assignment
 First we show that each saturated flow corresponds to a valid assignment. Let $ f $ be a saturated flow over $ G $ with associated assignment $ A_f $. We will show that each selected professor only represents one department, each department is represented, and the number of professors of each rank on the committee are equal (there are $ k = n/3$ of each rank).
 
-Each professor only has one inbound edge, with capacity 1. Because $ f $ is an integral flow, each professor $ p_i $ can have either 0 or 1 flowing through it, so they can have at most one edge $ (p_i, d_j) $ with $ f(p_i, d_j) = 1 $. Thus, each professor can represent at most one department. 
+Each professor only has one inbound edge, with capacity 1. Because $ f $ is an integral flow, each professor $ p_i $ can have either 0 or 1 flowing through it, so they can have at most one edge $ (p_i, d_j) $ with $ f(p_i, d_j) = 1 $. Thus, each professor can represent at most one department.
 
-Becasue $ \mathit{val}f = n $, we must have that $ f^{ \mathit{in}} t = n $. There are $ n $ edges going into $ t $ each with capacity 1 (one from each department), so each edge into $ t $ must have a flow value of 1. So, by flow conservation, each department must have a flow value of 1 going into it, so each department is represented by a professor.
+Becasue $ \mathit{val}(f) = n $, we must have that $ f^{ \mathit{in}}( t )= n $. There are $ n $ edges going into $ t $ each with capacity 1 (one from each department), so each edge into $ t $ must have a flow value of 1. So, by flow conservation, each department must have a flow value of 1 going into it, so each department is represented by a professor.
 
-Similarly, as $ \mathit{val}f = n $, we have $ f^{ \mathit{out}} s = n$. There are $ 3 $ edges going out of $ s $ each with capacity $ k = n/3 $, so each edge out of $ s $ must have a flow value $ k $. So, by flow conseravtion, each rank of professor must have flow value $ k $ going out of it, which means that $ k $ professors have been selected of every rank. Thus the conditions are satisfied and $ A_f $ is a valid assignment
+Similarly, as $ \mathit{val}(f) = n $, we have $ f^{ \mathit{out}} (s) = n$. There are $ 3 $ edges going out of $ s $ each with capacity $ k = n/3 $, so each edge out of $ s $ must have a flow value $ k $. So, by flow conseravtion, each rank of professor must have flow value $ k $ going out of it, which means that $ k $ professors have been selected of every rank. Thus the conditions are satisfied and $ A_f $ is a valid assignment
 
 % (<=) Show if a valid assignment exists, we can have a saturated flow. Check capacity, conservation, saturation.
 Next we will show that for some valid assignment $ A $ we can create an associated flow $ f_A $ such that $ f_A $ is a saturated flow. We do this by inverting the tranformation we use to get associated assignments. We construct $ f_A $ as follows: first, set $ f(s, r) = k $ for each $ r \in R $. Also, set $ f(d_j, t) = 1 $ for each $ d_j \in D $. Then, for each assignment $ (p_i, d_j) $ in $ f_A $ where $ p_i $ is of rank $ r_{p_i} $, set $ f(p_i, d_j) = 1 $ and $ f(r_{p_i}, p_i) = 1 $. Give each other edge flow value 0. We will prove $ f_A $ is a saturated flow, i.e. it statisfies capacity and flow constraints, is integral and $ \mathit{val}(f_A) = n $.
@@ -190,6 +190,64 @@ Finally, we inspect the flow value, which takes constant time, then we iterate o
 
 \subsection{Part A}
 
+\begin{figure}[h]
+	\centering
+\begin{tikzpicture}[
+    >={Stealth[length=2.5mm]},
+    vertex/.style={circle, draw, fill=white, inner sep=1.8pt}
+]
+
+% Source and sink
+\node[vertex, label=below:{$s$}] (s) at (0,0) {};
+\node[vertex, label=below:{$t$}] (t) at (14,0) {};
+
+% Left column (W)
+\node[vertex, label=above:{$w_1$}] (w1) at (4.5, 3.2)  {};
+\node[vertex, label=above:{$w_2$}] (w2) at (4.5, 1.8)  {};
+\node at (4.5, 0.6) {$\vdots$};
+\node[vertex, label=below:{$w_r$}] (wr) at (4.5,-0.6)  {};
+\node at (4.5,-1.8) {$\vdots$};
+\node[vertex, label=below:{$w_m$}] (wm) at (4.5,-3.2)  {};
+
+% Right column (N)
+\node[vertex, label=above:{$n_1$}] (c1) at (9.5, 3.2)  {};
+\node[vertex, label=above:{$n_2$}] (c2) at (9.5, 1.8)  {};
+\node at (9.5, 0.3) {$\vdots$};
+\node[vertex, label=below:{$n_i$}] (ci) at (9.5,-0.6)  {};
+\node at (9.5,-1.9) {$\vdots$};
+\node[vertex, label=below:{$n_n$}] (cn) at (9.5,-3.2)  {};
+
+% Column headings
+\node[font=\large] at (4.5, 4.4) {$W$};
+\node[font=\large] at (9.5, 4.4) {$N$};
+
+% Source -> W
+\draw[->] (s) -- node[auto, pos=0.75] {$s_1$} (w1);
+\draw[->] (s) -- node[auto, pos=0.75] {$s_2$} (w2);
+\draw[->] (s) -- node[auto, pos=0.60] {$s_r$} (wr);
+\draw[->] (s) -- node[auto, pos=0.59] {$s_m$} (wm);
+
+% W -> C
+\draw[->] (w1) -- node[auto, pos=0.5] {$s_1$} (c1);
+\draw[->] (w1) -- node[auto, pos=0.43] {$s_1$} (9.5, 1.0);
+\draw[->] (w2) -- node[auto, swap, pos=0.15] {$s_2$} (cn);
+\draw[->] (wr) -- node[auto, pos=0.55] {$s_r$} (c2);
+\draw[->] (wr) -- node[auto, pos=0.7] {$s_r$} (ci);
+\draw[->] (wm) -- node[auto, pos=0.55] {$s_m$} (9.5,-1.5);
+\draw[->] (wm) -- node[auto, pos=0.5] {$s_m$} (cn);
+
+% C -> sink
+\draw[->] (c1) -- node[auto, pos=0.37] {$c_1$} (t);
+\draw[->] (c2) -- node[auto, pos=0.37] {$c_2$} (t);
+\draw[->] (ci) -- node[auto, pos=0.5] {$c_i$} (t);
+\draw[->] (cn) -- node[auto, pos=0.5] {$c_n$} (t);
+
+\end{tikzpicture}
+\caption{The flow network $ G $ our algorithm produces.}
+\label{Q3-network}
+\end{figure}
+
+We construct a flow network where a unit of flow from a warehouse to a nation represents one dose being supplied to that nation from that warehouse. The flow network $ G $ with vertex set $ V $ and edge set $ E $ we construct is depicted in figure \ref{Q3-network}. The verticies of the network are $ \{s, t\} $, one vertex for each warehouse: $ W  = \{w_1, w_2, \ldots w_m \}$, and one vertex fo reach nation $ N = \{n_1, n_2, \ldots n_n\} $. So, $ V = \{s, t\} \cup W \cup N $. For each warehouse $ w_r $ with supply $ s_r $ we create an edge $ (s, w_r) $ with $ c(s, w_r) = s_r $. For each nation $ n_i $ with demand $ c_i $, we create an edge $ (n_i, t) $ with capcity $ c(n_i, t) = c_i $. Lastly, for each pair $(i, r)$ of nations an warehouses, we create a edge $ (w_r, n_i) $ connecting them. We don't care about the capacity of this edge, so we just set it to $ c(w_r, n_i) = s_r $ so that it doesn't bind.
 % Only A is graded
 %\subsection{Part B}
 
