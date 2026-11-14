@@ -99,8 +99,8 @@ after the $i$th iteration of the outer loop at line \ref{1aouter1}.
 
 When $i = 0$ or before the first iteration, $f(e) = 0$ for all $e
 \in E$ hence flow conservation holds trivially. More precisely, for
-any vertex $v \in V \setminus \{s, t\}$, we have $f^\mathit{in} (u) =
-f^\mathit{out} (u) = 0$.
+any vertex $v \in V \setminus \{s, t\}$, we have $f^\mathit{in} (v) =
+f^\mathit{out} (v) = 0$.
 
 Now suppose that the flow $f$ satisfies flow conservation after
 iteration $i-1$. From line \ref{1ainner1}, the paths $p_1$ and $p_2$
@@ -248,6 +248,74 @@ Therefore, the runtime of the above algorithm is $ O(m^2 n) $, which
 is polynomial in $m$ and $n$.
 
 \subsection{Part C}
+
+Since a forward s-t cut is an s-t cut, we know that
+\[
+  \mathit{val}(f) = \sum_{\substack{u \in A,\, v \in B \\ (u, v) \in
+  E}} f(u, v) - \sum_{\substack{u \in B,\, v \in A \\ (u, v) \in E}} f(u, v)
+\]
+A forward s-t cut, by definition, does not have any backwards flow
+(no edges from $B$ to $A$). That is, the second sum
+$\sum_{\substack{u \in B,\, v \in A \\ (u, v) \in E}} f(u, v)$ is
+zero. Thus, we get
+\[
+  \mathit{val}(f) = \sum_{\substack{u \in A,\, v \in B \\ (u, v) \in E}} f(u, v)
+\]
+Since we know $f(u,v) \geq \ell(u,v)$ for every $(u,v) \in E$, we have
+\[
+  \mathit{val}(f)
+  = \sum_{\substack{u \in A,\, v \in B \\ (u,v) \in E}} f(u,v)
+  \geq \sum_{\substack{u \in A,\, v \in B \\ (u,v) \in E}} \ell(u,v)
+  = \ell(A,B),
+\]
+as desired.
+
+Consider first the trivial case of $\mathit{val}(f') = \mathit{val}(f_0)$,
+then from part B, $\mathit{val}(f) = 0$. Choosing $A = V \setminus
+\{t\}$ and $B = \{t\}$ gives us a valid forward cut, since no edges leave $t$.
+Also, since $\mathit{val}(f) = 0$ and no edges leave $t$, the flow in
+to $t$ must be 0. Hence, the lower bounds of the edges into $t$ must
+be 0, meaning $\ell(A, B) = 0 = \mathit{val}(f)$. Moreover, $A \cup B
+= V$, $t \in B$, and $s \in A$ by construction. Thus $(A, B)$
+is a valid forward s-t cut.
+
+Now, suppose $\mathit{val}(f') < \mathit{val}(f_0)$. Take $B = \{v
+  \in V \mid v \text{ is reachable from } t \text{ in the residual
+network}\}$ and $A = V \setminus B$. Notice that $t \in B$ by
+definition and $s \in A$, since otherwise $s$ is reachable from $t$,
+contradicting maximality of $f'$.
+
+Suppose, for contradiction, that there exists an edge $(u,v) \in E$
+such that $u \in B$ and $v \in A$. Since the forward edge $(u,v)$ in
+$G'$ has capacity $\mathit{val}(f_0)$ and $f'(u,v) \leq
+\mathit{val}(f') < \mathit{val}(f_0)$, its residual capacity must be
+positive. Since $u$ is reachable from $t$, this would mean that $v$
+is also reachable from $t$, meaning $v \in B$ by definition. This is
+a contradiction. Therefore, there are no edges from $B$ to $A$, so
+$(A, B)$ is a forward $s$-$t$ cut.
+
+By the Max-Flow Min-Cut theorem on $G'$, the capacity of cut $(B, A)$
+is equal to $\mathit{val}(f')$. Since $(A,B)$ is a forward s-t cut in
+$G$, the only edges from $B$ to $A$ in $G'$ are the backward edges
+corresponding to edges from $A$ to $B$ in $G$. Thus, we have
+\[
+  \begin{aligned} \mathit{val}(f') &= \sum_{\substack{u \in A,\, v
+    \in B \\ (u,v) \in E}} (f_0(u,v)-\ell(u,v))\\ &=
+    \sum_{\substack{u \in A,\, v \in B \\ (u,v) \in E}} f_0(u,v) -
+    \ell(A,B)\\ &= \mathit{val}(f_0)-\ell(A,B).
+  \end{aligned}
+\]
+Now, from part B, we know that $\mathit{val}(f) = \mathit{val}(f_0) -
+\mathit{val}(f')$. Therefore,
+\[
+  \begin{aligned}
+    \mathit{val}(f)
+    &= \mathit{val}(f_0) -
+    (\mathit{val}(f_0)-\ell(A,B))\\
+    &= \ell(A,B),
+  \end{aligned}
+\]
+as desired.
 
 \section{Question 2}
 
