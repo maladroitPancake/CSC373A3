@@ -55,7 +55,132 @@
 \section{Question 1}
 \subsection{Part A}
 
+We define a procedure called \textsc{SomeFlow}, which takes in the
+flow network $G=(V,E)$ and the lower bounds $\ell(e)$ for every edge
+$e \in E$. The procedure finds two paths, one from $s$ to $u$ and
+another from $v$ to $t$, for each edge $(u,v) \in E$, and increments
+the flow of all edges on both paths and $(u,v)$ by $1$.
+
+\vspace{\baselineskip}
+\noindent\textsc{SomeFlow}$( G , \ell )$:
+\begin{algorithmic}[1]
+  \State Initialize $ f(e) = 0 $ for all $e \in E$
+  \For{each edge $ (u, v) $ in $ E $} \label{1aouter1}
+  \State Take $ p_1, p_2 $ to be a path from $ s $ to $ u $ and from
+  $ v $ to $ t $ \label{1ainner1} \Comment{Using BFS}
+  % from $ s $ and from $ t $ on $ G $ with all of its edges reversed
+  \For{each edge $ e $ in $ p_1 $} \label{1ainner2}
+  \State $ f(e) = f(e) + 1 $
+  \EndFor
+  \For{each edge $ e $ in $ p_2 $} \label{1ainner3}
+  \State $ f(e) = f(e) + 1 $
+  \EndFor
+  \State $ f(u, v) = f(u, v) + 1 $ \label{1ainner4}
+  \EndFor
+  \State $ c = \max{\ell} $ \label{1aouter2}
+  \For{each edge $ e $ in $ E $} \label{1aouter3}
+  \State $ f(e) = f(e) * c $
+  \EndFor
+  \State\Return $ f $
+\end{algorithmic}
+\vspace{\baselineskip}
+
+\noindent \textbf{Correctness}\\
+
+First, consider the trivial case where all lower bounds $ \ell(e) = 0
+$. If so, $c = 0$ from line 9, hence the final flow returned by
+\textsc{SomeFlow} is the trivial flow where all $f(e) = 0$ for all $e
+\in E$. This satisfies flow conservation and the lower bound, hence
+is a valid flow.
+
+To prove correctness of the algorithm, we want to show inductively
+that the flow $f$ from the algorithm satisfies flow conservation
+after the $i$th iteration of the outer loop at line \ref{1aouter1}.
+
+When $i = 0$ or before the first iteration, $f(e) = 0$ for all $e
+\in E$ hence flow conservation holds trivially. More precisely, for
+any vertex $v \in V \setminus \{s, t\}$, we have $f^\mathit{in} (u) =
+f^\mathit{out} (u) = 0$.
+
+Now suppose that the flow $f$ satisfies flow conservation after
+iteration $i-1$. From line \ref{1ainner1}, the paths $p_1$ and $p_2$
+exist by the problem assumption.
+The algorithm then increments the flow for all edges on $p_1$, $p_2$,
+and the edge $(u,v)$ (lines \ref{1ainner2} to \ref{1ainner4}).
+Consider some vertex $w_1 \in (p_1 \setminus \{s,u\})$ and $w_2 \in (p_2
+\setminus \{v,t\})$. Then notice after the first inner loop at line
+\ref{1ainner2}, both $f^\mathit{in}(w_1)$ and $f^\mathit{out}(w_1)$
+are incremented by 1. Similarly, after the second inner loop at line
+\ref{1ainner3}, both $f^\mathit{in}(w_2)$ and $f^\mathit{out}(w_2)$
+are incremented by 1.
+
+Also, notice that if $u \neq s$, the incoming flow at $u$ from $p_1$
+is incremented by 1. Since $f(u,v)$ is also incremented, the outgoing
+flow at $u$ is also incremented by 1. Similarly, if $v \neq t$, the
+incoming flow at $v$ from $(u,v)$ and outgoing flow from $p_2$ are
+both incremented by 1.
+
+If $u$ or $v$ is also an intermediate vertex of the other path, then
+both its flow in and flow out are incremented by another 1, as shown above.
+For any other vertex not in $p_1$ or $p_2$ and is not $u$ or $v$, its
+flow in and flow out are not changed.
+
+By the induction hypothesis, $f^\mathit{in}(w) = f^\mathit{out}(w)$
+for every $w \in V \setminus \{s, t\}$. Since both quantities
+increase by the same amount, flow conservation
+is preserved after iteration $i$.
+
+Therefore, after the first outer loop, the algorithm correctly
+constructs a flow satisfying flow conservation. Moreover, since the
+loop considers every edge $(u, v)$ once and each iteration increments
+the edge's flow by at least 1 from line \ref{1ainner4}, we must have
+$f(u, v) \geq 1$ for all $(u, v) \in E$.
+
+Now, from line \ref{1aouter2}, $c = max_{e \in E} \ell (e)$. Since
+all $f(e) \geq 1$ by construction, $c * f(e) \geq c \geq \ell(e)$.
+Therefore, all edges satisfy its lower bound after the second outer
+loop at line \ref{1aouter3}. Finally, flow conservation still holds
+because $f^\mathit{in} (v) = f^\mathit{out} (v)$ from above, meaning
+$c * f^\mathit{in} (v) = c * f^\mathit{out} (v)$.
+
+\noindent \textbf{Runtime}\\
+
+The first outer loop on line \ref{1aouter1} performs $m = |E|$
+iterations. For each iteration of the first outer loop, line
+\ref{1ainner1} performs two BFS to find the path from $ s $ to $ u $
+and from $ v $ to $ t $, which takes $ O(m + n) $. Then, the inner
+loops at lines \ref{1ainner2} and \ref{1ainner3} performs at most $
+O(m) $ iterations of a constant time operation each. Hence, the first
+loop's runtime is $ O(m \cdot (m + n + m + m)) = O(m^2 + mn) $. Then,
+the maximum at line \ref{1aouter2} takes $ O(m) $ time. Similarly,
+the second outer loop at line \ref{1aouter3} performs $ O(m) $
+iterations of a constant time operation, hence takes $ O(m) $ time.
+
+Therefore, the runtime of \textsc{SomeFlow} is $ O(m^2 + mn + m + m)
+= O(m^2 + m n) $, which is polynomial in $m$ and $n$.
+
 \subsection{Part B}
+
+First, construct a new network $G' = (V, E)$. For every edge $e
+\in E$, the capacity is defined as $c(e) = f_0 (e) - \ell (e)$.
+Then, perform Ford-Fulkerson on the network $G'$ to find the maximum
+"flow" $f'$ on the network.
+Finally, construct the flow $f$ that has minimum value among all
+flows, satisfies lower bound, and satisfies flow conservation by
+calculating $f(e) = f_0 (e) - f'(e)$.
+
+\noindent \textbf{Correctness}\\
+
+\noindent \textbf{Runtime}\\
+
+Construction of the new network $G'$ takes $O(m)$, to calculate the
+new capacities for each edge. Then, Ford-Fulkerson with fewest edge
+(shortest path) heuristic takes $O(m^2 n)$. Finally, the construction
+of $f$ takes $O(m)$, as calculating the minimum flow for each edge
+takes $O(1)$ time.
+
+Therefore, the runtime of the above algorithm is $ O(m^2 n) $, which
+is polynomial in $m$ and $n$.
 
 \subsection{Part C}
 
